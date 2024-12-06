@@ -42,6 +42,7 @@ uint8_t activeInput = 0;
 
 // for deauther
 #define FRAMES_PER_DEAUTH 5
+char *buttonsString = "De-Authenticate";
 
 std::vector<WiFiScanResult> scan_results;
 
@@ -88,7 +89,7 @@ void showScanResult() {
   display.setCursor(5, 65);
   display.setTextColor(SH110X_WHITE);
   display.print("[" + scan_results[activeSSID].bssid_str + "]");
-  drawButton(15, 92, 100, "DeAuthenticate", activeInput == 1);
+  drawButton(15, 92, 100, buttonsString, activeInput == 1);
 }
 
 void showDeautherScreen() {
@@ -101,7 +102,7 @@ void showDeautherScreen() {
 
 void startDeauther() {
   if (isDeauthenticating) {
-    delay(50);
+    Serial.println("Deauthenticating");
   }
 }
 
@@ -159,7 +160,13 @@ void deautherLoop() {
         isChangingSSID = true;
       }
     } else {
-      isDeauthenticating = true;
+      if (!isDeauthenticating) {
+        buttonsString = "Stop";
+        isDeauthenticating = true;
+      } else {
+        isDeauthenticating = false;
+        buttonsString = "De-Authenticate";
+      }
     }
     isPageLoaded = false;
   }
@@ -173,8 +180,8 @@ void deautherLoop() {
   if (!isPageLoaded) {
     showScanResult();
     isPageLoaded = true;
+  } else {
+    startDeauther();
   }
-
-  startDeauther();
   display.display();
 }
