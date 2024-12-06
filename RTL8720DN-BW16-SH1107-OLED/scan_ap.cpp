@@ -2,6 +2,7 @@
 #undef max
 
 #include "util.h"
+#include "pin.h"
 #include "struct.h"
 #include "scan_ap.h"
 #include "icon.h"

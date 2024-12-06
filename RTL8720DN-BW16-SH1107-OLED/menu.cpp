@@ -3,6 +3,7 @@
 #undef min
 
 #include "util.h"
+#include "pin.h"
 #include "struct.h"
 #include "icon.h"
 #include "menu.h"
@@ -20,10 +21,10 @@
 extern Adafruit_SH1107 display;
 extern bool isWifiScanned;
 
-ezButton BTN_NEXT(PB1);
-ezButton BTN_PREV(PB2);
-ezButton BTN_SEL(PB3);
-ezButton BTN_BACK(PA27);
+ezButton BTN_NEXT(BTN_NEXT_PIN);
+ezButton BTN_PREV(BTN_PREV_PIN);
+ezButton BTN_SEL(BTN_SEL_PIN);
+ezButton BTN_BACK(BTN_BACK_PIN);
 
 enum Direction {
   RightToLeft,

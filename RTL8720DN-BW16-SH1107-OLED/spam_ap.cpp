@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "util.h"
+#include "pin.h"
 #include "struct.h"
 #include "spam_ap.h"
 #include "icon.h"
