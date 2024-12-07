@@ -41,6 +41,12 @@ uint8_t activeSSIDIndex = 0;
 uint8_t networkCount = 0;
 uint8_t activeInput = 0;
 
+const int barX = 2;        // X position of the progress bar
+const int barY = 80;       // Y position of the progress bar
+const int barWidth = 125;  // Total width of the progress bar
+const int barHeight = 5;   // Height of the progress bar
+static int progress = 0;
+
 // for deauther
 #define FRAMES_PER_DEAUTH 5
 char *buttonsString = "De-Authenticate";
@@ -112,8 +118,34 @@ void showDeautherScreen() {
   showScanResult();
 }
 
+void drawProgressBar() {
+  static unsigned long lastUpdate = 0;      // Time of last update
+  const unsigned long updateInterval = 50;  // Update interval in milliseconds
+
+  if (millis() - lastUpdate >= updateInterval) {
+    lastUpdate = millis();
+    // Draw the empty rectangle (progress bar border)
+    display.drawRect(barX, barY, barWidth, barHeight, SH110X_WHITE);
+
+    // Draw the filled portion of the progress bar
+    int filledWidth = map(progress, 0, 100, 0, barWidth - 1);
+    display.fillRect(barX + 1, barY + 1, filledWidth, barHeight - 2, SH110X_WHITE);
+
+    // Display the current frame
+    display.display();
+
+    // Increment progress and reset if it exceeds 100
+    progress += 10;
+    if (progress > 100) {
+      display.fillRect(barX, barY, filledWidth, barHeight, SH110X_BLACK);
+      progress = 0;
+    }
+  }
+}
+
 void startDeauther() {
   if (isDeauthenticating) {
+    drawProgressBar();
     wext_set_channel(WLAN0_NAME, scan_results[activeSSIDIndex].channel);
     wifi_tx_deauth_frame(deauth_bssid, (void *)"\xFF\xFF\xFF\xFF\xFF\xFF", deauth_reason);
     delay(50);
@@ -144,8 +176,8 @@ void deautherLoop() {
         activeSSIDIndex = networkCount - 1;
       }
     } else {
-      if (activeInput < 1) {
-        activeInput += 1;
+      if (activeInput == 1) {
+        activeInput = 0;
       } else {
         activeInput = 1;
       }
@@ -161,8 +193,8 @@ void deautherLoop() {
         activeSSIDIndex = 0;
       }
     } else {
-      if (activeInput > 0) {
-        activeInput -= 1;
+      if (activeInput == 0) {
+        activeInput = 1;
       } else {
         activeInput = 0;
       }
