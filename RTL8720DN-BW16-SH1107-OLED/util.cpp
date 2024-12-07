@@ -130,7 +130,11 @@ void showScreenTitle(char* text) {
   // Set cursor position and print text
   display.setCursor(x, y);
   display.print(text);
+  display.setCursor(5, 5);
+  display.cp437(true);
+  display.print("<");
   display.display();
+  display.cp437(false);
 }
 
 void displayFrame() {

@@ -89,11 +89,19 @@ void showScanResult() {
   displayFrame();
   showScreenTitle("DE-AUTHENTICATE");
   String ssid = formatSSID(scan_results[activeSSIDIndex].ssid);
-  drawInputBox(0, 40, (String(ssid)).c_str(), activeInput == 0);
-  display.setCursor(5, 65);
+  drawInputBox(0, 30, (String(ssid)).c_str(), activeInput == 0);
+  display.setCursor(7, 55);
   display.setTextColor(SH110X_WHITE);
   display.print("[" + scan_results[activeSSIDIndex].bssid_str + "]");
-  drawButton(15, 92, 100, buttonsString, activeInput == 1);
+  display.setCursor(7, 68);
+  if (scan_results[activeSSIDIndex].channel >= 36) {
+    display.print("5Ghz");
+  } else {
+    display.print("2.4Ghz");
+  }
+  display.setCursor(102, 68);
+  display.print(scan_results[activeSSIDIndex].rssi);
+  drawButton(10, 92, 110, buttonsString, activeInput == 1);
 }
 
 void showDeautherScreen() {
@@ -134,6 +142,7 @@ void deautherSetup() {
   isDeauthenticating = false;
   activeInput = 0;
   isChangingSSID = false;
+
   WiFi.disablePowerSave();
   wifi_on(RTW_MODE_PROMISC);
   wifi_enter_promisc_mode();
@@ -141,8 +150,9 @@ void deautherSetup() {
     isPageLoaded = true;
     showDeautherScreen();
   }
-  attachInterrupt(digitalPinToInterrupt(BTN_SEL_PIN), handleSELButtonInterrupt, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(BTN_BACK_PIN), handleBACKButtonInterrupt, CHANGE);
+
+  attachInterrupt(digitalPinToInterrupt(BTN_SEL_PIN), handleSELButtonInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BTN_BACK_PIN), handleBACKButtonInterrupt, FALLING);
 
   display.display();
 }
