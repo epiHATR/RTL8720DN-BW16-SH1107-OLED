@@ -121,23 +121,6 @@ void startDeauther() {
   }
 }
 
-void handleSELButtonInterrupt() {
-  if (isDeauthenticating) {
-    isDeauthenticating = false;
-    buttonsString = "De-Authenticate";
-    activeInput = 1;
-  }
-  isPageLoaded = false;
-}
-
-void handleBACKButtonInterrupt() {
-  isDeauthenticating = false;
-  isMainMenu = true;
-  activeInput = 0;
-  isChangingSSID = false;
-  isPageLoaded = false;
-}
-
 void deautherSetup() {
   isDeauthenticating = false;
   activeInput = 0;
@@ -150,10 +133,6 @@ void deautherSetup() {
     isPageLoaded = true;
     showDeautherScreen();
   }
-
-  attachInterrupt(digitalPinToInterrupt(BTN_SEL_PIN), handleSELButtonInterrupt, FALLING);
-  attachInterrupt(digitalPinToInterrupt(BTN_BACK_PIN), handleBACKButtonInterrupt, FALLING);
-
   display.display();
 }
 
@@ -216,6 +195,9 @@ void deautherLoop() {
     isMainMenu = true;
     selectedMenu = -1;
     isPageLoaded = false;
+    isDeauthenticating = false;
+    activeInput = 0;
+    isChangingSSID = false;
   }
 
   if (!isPageLoaded) {
